@@ -23,7 +23,7 @@ pipeline {
             steps {
                 script {
                     docker.image("${DOCKER_IMAGE}").inside {
-                        sh 'CI=true npm run test'
+                        sh 'npm run test'
                     }
                 }
             }
