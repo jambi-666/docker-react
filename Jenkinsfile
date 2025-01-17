@@ -7,7 +7,7 @@ pipeline {
         AWS_EB_APP_NAME = 'frontend'
         AWS_EB_ENV_NAME = 'Frontend-env'
         AWS_S3_BUCKET = 'elasticbeanstalk-ap-south-1-954976301189'
-        AWS_S3_BUCKET_PATH = 's3://elasticbeanstalk-ap-south-1-954976301189/'
+        AWS_S3_BUCKET_PATH = 'frontend'
     }
     
     stages {
