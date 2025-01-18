@@ -28,9 +28,7 @@ pipeline {
         }
         
         stage('Deploy to AWS') {
-            when {
-                branch 'master'
-            }
+          
             environment {
                 AWS_CREDENTIALS = credentials('aws-credentials')
             }
