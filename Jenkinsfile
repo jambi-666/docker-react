@@ -22,9 +22,8 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    docker.image("${DOCKER_IMAGE}").inside {
-                        sh 'npm run test'
-                    }
+                    // Using docker.run() instead of docker.image().inside()
+                    sh "docker run -e CI=true ${DOCKER_IMAGE} npm run test"
                 }
             }
         }
