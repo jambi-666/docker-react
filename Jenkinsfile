@@ -14,7 +14,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}", "-f Dockerfile.dev .")
+                    bat "docker build -t ${DOCKER_IMAGE} -f Dockerfile.dev ."
                 }
             }
         }
@@ -22,32 +22,32 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Using docker.run() instead of docker.image().inside()
-                    sh "docker run -e CI=true ${DOCKER_IMAGE} npm run test"
+                    bat "docker run -e CI=true ${DOCKER_IMAGE} npm run test"
                 }
             }
         }
         
         stage('Deploy to AWS') {
             when {
-                branch 'master'
+                branch 'main'
             }
             environment {
                 AWS_CREDENTIALS = credentials('aws-credentials')
             }
             steps {
                 script {
-                    // Install AWS EB CLI if not already installed
-                    sh '''
-                        if ! command -v eb &> /dev/null; then
-                            pip install awsebcli --upgrade --user
-                        fi
-                    '''
+                    // Check if EB CLI exists and install if needed
+                    bat """
+                        where eb > nul 2>&1 || (
+                            python -m pip install --upgrade pip
+                            pip install awsebcli --upgrade
+                        )
+                    """
                     
                     // Configure AWS credentials
                     withAWS(credentials: 'aws-credentials', region: "${AWS_DEFAULT_REGION}") {
                         // Deploy to Elastic Beanstalk
-                        sh """
+                        bat """
                             eb init ${AWS_EB_APP_NAME} --region ${AWS_DEFAULT_REGION} --platform docker
                             eb deploy ${AWS_EB_ENV_NAME}
                         """
