@@ -3,47 +3,38 @@ pipeline {
     
     environment {
         DOCKER_IMAGE = 'anjush/docker-react'
-        AWS_DEFAULT_REGION = 'us-east-1'
-        AWS_EB_APP_NAME = 'docker'
-        AWS_EB_ENV_NAME = 'docker-env'
-        AWS_S3_BUCKET = 'elasticbeanstalk-us-east-1-923445559289'
-        AWS_S3_BUCKET_PATH = 'docker'
-        // Use Jenkins credentials
-        AWS_ACCESS_KEY_ID = credentials('aws-credentials').ACCESS_KEY_ID
-        AWS_SECRET_ACCESS_KEY = credentials('aws-credentials').SECRET_ACCESS_KEY
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        AWS_EB_APP_NAME = 'frontend'
+        AWS_EB_ENV_NAME = 'Frontend-env'
+        AWS_S3_BUCKET = 'elasticbeanstalk-ap-south-1-954976301189'
+        AWS_S3_BUCKET_PATH = 'frontend'
     }
     
     stages {
-        stage('Test') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    bat "docker build -t ${DOCKER_IMAGE}-test -f Dockerfile.dev ."
-                    bat "docker run -e CI=true ${DOCKER_IMAGE}-test npm run test"
+                    bat "docker build -t ${DOCKER_IMAGE} -f Dockerfile.dev ."
                 }
             }
         }
         
-        stage('Build Production Image') {
+        stage('Run Tests') {
             steps {
                 script {
-                    // Build using production Dockerfile
-                    bat "docker build -t ${DOCKER_IMAGE} ."
+                    bat "docker run -e CI=true ${DOCKER_IMAGE} npm run test"
                 }
             }
         }
         
         stage('Deploy to AWS') {
+          
+            environment {
+                AWS_CREDENTIALS = credentials('aws-credentials')
+            }
             steps {
                 script {
-                    // Install AWS CLI if not present
-                    bat """
-                        where aws > nul 2>&1 || (
-                            python -m pip install --upgrade pip
-                            pip install awscli --upgrade
-                        )
-                    """
-                    
-                    // Install EB CLI if not present
+                    // Check if EB CLI exists and install if needed
                     bat """
                         where eb > nul 2>&1 || (
                             python -m pip install --upgrade pip
@@ -51,15 +42,14 @@ pipeline {
                         )
                     """
                     
-                    // Deploy using EB CLI
-                    bat """
-                        aws configure set aws_access_key_id %AWS_ACCESS_KEY_ID%
-                        aws configure set aws_secret_access_key %AWS_SECRET_ACCESS_KEY%
-                        aws configure set default.region ${AWS_DEFAULT_REGION}
-                        
-                        eb init ${AWS_EB_APP_NAME} --region ${AWS_DEFAULT_REGION} --platform docker
-                        eb deploy ${AWS_EB_ENV_NAME}
-                    """
+                    // Configure AWS credentials
+                    withAWS(credentials: 'aws-credentials', region: "${AWS_DEFAULT_REGION}") {
+                        // Deploy to Elastic Beanstalk
+                        bat """
+                            eb init ${AWS_EB_APP_NAME} --region ${AWS_DEFAULT_REGION} --platform docker
+                            eb deploy ${AWS_EB_ENV_NAME}
+                        """
+                    }
                 }
             }
         }
